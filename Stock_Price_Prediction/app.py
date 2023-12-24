@@ -21,16 +21,6 @@ stocks = {
     "BAC": "Bank of America",
     "GOOG": "Alphabet Inc. (Class C)",
     "IBM": "International Business Machines",
-    "INTC": "Intel",
-    "CSCO": "Cisco Systems",
-    "WMT": "Walmart",
-    "CVX": "Chevron",
-    "XOM": "Exxon Mobil",
-    "PG": "Procter & Gamble",
-    "KO": "The Coca-Cola Company",
-    "JNJ": "Johnson & Johnson",
-    "DIS": "The Walt Disney Company",
-    "V": "Visa",
     "MA": "Mastercard",
 }
 
