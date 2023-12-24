@@ -4,3 +4,6 @@ numpy==1.21.2
 yfinance==0.1.63
 prophet==1.0.1
 plotly==5.3.1
+Cython==0.29.24
+pystan==2.19.1.1
+
