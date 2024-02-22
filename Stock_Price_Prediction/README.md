@@ -43,3 +43,4 @@ A Stock Price Prediction Web Application is developed using Streamlit, providing
 - Generation of a data table containing predicted values, future - dates, upper and lower price predictions, etc.
 - Prediction chart showing both actual values till date and future predicted values.
 - Forecast components showing predicted overall, weekly, and yearly trends of the stock.
+- Link for the web application: https://machine-learning-wxathxpj33fxedk42mr2ru.streamlit.app/
