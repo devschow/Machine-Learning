@@ -60,8 +60,24 @@ def plot_raw_data():
 plot_raw_data()
 
 # Predict forecast with Prophet.
-df_train = data[['Date','Close']]
+# df_train = data[['Date','Close']]
+# df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
+# Ensure correct data types for 'Date' and 'Close'
+data['Date'] = pd.to_datetime(data['Date'], errors='coerce')  # Convert to datetime
+data['Close'] = pd.to_numeric(data['Close'], errors='coerce')  # Ensure numeric values
+data = data.dropna(subset=['Date', 'Close'])  # Drop rows with invalid 'Date' or 'Close'
+
+# Prepare data for Prophet
+df_train = data[['Date', 'Close']].copy()
 df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
+
+# Check if df_train is valid
+if df_train.empty:
+    st.error("No valid data available for training. Please check the stock symbol and try again.")
+else:
+    st.write("Prepared data for Prophet:")
+    st.write(df_train.head())
+
 
 m = Prophet()
 m.fit(df_train)
