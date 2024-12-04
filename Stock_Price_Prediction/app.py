@@ -31,31 +31,60 @@ n_years = st.slider('Years of prediction:', 1, 4)
 period = n_years * 365
 
 
+# @st.cache_data
+# def load_data(ticker):
+#     data = yf.download(ticker, START, TODAY)
+#     data.reset_index(inplace=True)
+#     return data
+
+# data_load_state = st.text('Loading data...')
+# try:
+#     data = load_data(selected_stock_ticker)
+#     data_load_state.text('Loading data... done!')
+#     st.success("Data loaded successfully!")
+# except Exception as e:
+#     data_load_state.text('Loading data... error!')
+#     st.error(f"Error loading data: {e}")
 @st.cache_data
 def load_data(ticker):
-    data = yf.download(ticker, START, TODAY)
-    data.reset_index(inplace=True)
-    return data
+    try:
+        data = yf.download(ticker, START, TODAY)
+        data.reset_index(inplace=True)
+        data['Date'] = pd.to_datetime(data['Date'], errors='coerce')  # Ensure valid datetime
+        data['Close'] = pd.to_numeric(data['Close'], errors='coerce')  # Ensure valid numbers
+        data.dropna(subset=['Date', 'Close'], inplace=True)  # Remove invalid rows
+        return data
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return pd.DataFrame()  # Return empty DataFrame if there's an error
 
-data_load_state = st.text('Loading data...')
-try:
-    data = load_data(selected_stock_ticker)
-    data_load_state.text('Loading data... done!')
-    st.success("Data loaded successfully!")
-except Exception as e:
-    data_load_state.text('Loading data... error!')
-    st.error(f"Error loading data: {e}")
 
 st.subheader('Raw data')
 st.write(data.tail())
 
 # Plot raw data
+# def plot_raw_data():
+#     fig = go.Figure()
+#     fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="Stock Open", line=dict(color='red')))
+#     fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="Stock Close", line=dict(color='blue')))
+#     fig.update_layout(title_text=f'Time Series Data for {selected_stock_name}', xaxis_rangeslider_visible=True, xaxis_title="Time",yaxis_title="Stock Price (USD)")
+#     st.plotly_chart(fig)
 def plot_raw_data():
+    if data.empty:
+        st.error("No data available to plot.")
+        return
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="Stock Open", line=dict(color='red')))
     fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="Stock Close", line=dict(color='blue')))
-    fig.update_layout(title_text=f'Time Series Data for {selected_stock_name}', xaxis_rangeslider_visible=True, xaxis_title="Time",yaxis_title="Stock Price (USD)")
+    fig.update_layout(
+        title_text=f'Time Series Data for {selected_stock_name}',
+        xaxis_rangeslider_visible=True,
+        xaxis_title="Time",
+        yaxis_title="Stock Price (USD)"
+    )
     st.plotly_chart(fig)
+
 
 plot_raw_data()
 
@@ -79,8 +108,18 @@ else:
     st.write(df_train.head())
 
 
-m = Prophet()
-m.fit(df_train)
+# m = Prophet()
+# m.fit(df_train)
+if not df_train.empty:
+    try:
+        m = Prophet()
+        st.write("Training Prophet model...")
+        m.fit(df_train)
+    except Exception as e:
+        st.error(f"Error during model training: {e}")
+else:
+    st.error("Training data is empty. Cannot train Prophet model.")
+
 future = m.make_future_dataframe(periods=period)
 forecast = m.predict(future)
 
