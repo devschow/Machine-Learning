@@ -42,18 +42,25 @@ period = n_years * 365
 # Load Data Function
 @st.cache_data
 def load_data(ticker):
-    """Download and ensure correct format of Yahoo Finance data."""
+    """Download and clean stock data, flattening multi-level columns if needed."""
     try:
-        df = yf.download(ticker, START, TODAY, progress=False)
+        df = yf.download(ticker, START, TODAY, group_by='ticker', progress=False)
 
         if df.empty:
             return pd.DataFrame()
 
+        # Flatten multi-index columns
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = ['_'.join(col).strip() if isinstance(col, tuple) else col for col in df.columns]
+
         df.reset_index(inplace=True)
 
-        # Rename 'Adj Close' to 'Close' if 'Close' is missing
-        if 'Close' not in df.columns and 'Adj Close' in df.columns:
-            df['Close'] = df['Adj Close']
+        # Try to extract a usable Close column
+        close_cols = [col for col in df.columns if 'Close' in col and col != 'Adj Close']
+        if close_cols:
+            df['Close'] = df[close_cols[0]]
+        else:
+            return pd.DataFrame()  # Can't proceed without Close
 
         return df
     except Exception as e:
@@ -66,14 +73,12 @@ data = load_data(selected_stock_ticker)
 data_load_state.text("Loading data... done!")
 
 if data.empty:
-    st.error("No data was downloaded. The ticker might be incorrect or no data is available.")
+    st.error("No data was downloaded or no usable 'Close' price found. Please try a different stock.")
     st.stop()
 
-required_columns = {'Date', 'Close'}
-missing_columns = required_columns - set(data.columns)
-
-if missing_columns:
-    st.error(f"Missing required column(s): {missing_columns}")
+# Ensure required columns
+if 'Date' not in data.columns or 'Close' not in data.columns:
+    st.error("Missing required columns 'Date' or 'Close'.")
     st.write("Available columns:", list(data.columns))
     st.stop()
 
