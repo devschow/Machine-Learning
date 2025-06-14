@@ -59,13 +59,28 @@ data_load_state = st.text("Loading data...")
 data = load_data(selected_stock_ticker)
 data_load_state.text("Loading data... done!")
 
-if data.empty or 'Date' not in data.columns or 'Close' not in data.columns:
-    st.error("The data is missing required columns. Please check the stock symbol and try again.")
+if data.empty:
+    st.error("No data was downloaded. Cannot continue.")
     st.stop()
+
+if 'Date' not in data.columns or 'Close' not in data.columns:
+    st.error("Required columns ('Date' or 'Close') are missing from the data. Cannot proceed.")
+    st.write("Downloaded columns:", data.columns.tolist())  # Optional: for debug
+    st.stop()
+
+# if data.empty or 'Date' not in data.columns or 'Close' not in data.columns:
+#     st.error("The data is missing required columns. Please check the stock symbol and try again.")
+#     st.stop()
 
 # Ensure correct data types
 data['Date'] = pd.to_datetime(data['Date'], errors='coerce')
+# data['Close'] = pd.to_numeric(data['Close'], errors='coerce')
+if 'Close' not in data.columns:
+    st.error("'Close' column is missing from the downloaded data. Cannot proceed.")
+    st.stop()
+
 data['Close'] = pd.to_numeric(data['Close'], errors='coerce')
+
 data = data.dropna(subset=['Date', 'Close'])
 
 st.success("Data loaded successfully!")
