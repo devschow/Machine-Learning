@@ -1,6 +1,6 @@
-pystan
 datetime
 yfinance
 prophet
 plotly
-Cython
+pandas
+streamlit
