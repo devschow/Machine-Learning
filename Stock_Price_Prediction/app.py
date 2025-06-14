@@ -46,12 +46,10 @@ def load_data(ticker):
     try:
         data = yf.download(ticker, START, TODAY)
         if data.empty:
-            st.error("No data was downloaded. The ticker might be incorrect or no data is available.")
             return pd.DataFrame()
         data.reset_index(inplace=True)
         return data
     except Exception as e:
-        st.error(f"Error loading data for {ticker}: {e}")
         return pd.DataFrame()
 
 # Load and Validate Data
@@ -60,28 +58,25 @@ data = load_data(selected_stock_ticker)
 data_load_state.text("Loading data... done!")
 
 if data.empty:
-    st.error("No data was downloaded. Cannot continue.")
+    st.error("No data was downloaded. The ticker might be incorrect or no data is available.")
     st.stop()
 
-if 'Date' not in data.columns or 'Close' not in data.columns:
-    st.error("Required columns ('Date' or 'Close') are missing from the data. Cannot proceed.")
-    st.write("Downloaded columns:", data.columns.tolist())  # Optional: for debug
+required_columns = {'Date', 'Close'}
+missing_columns = required_columns - set(data.columns)
+
+if missing_columns:
+    st.error(f"Missing required column(s): {missing_columns}")
+    st.write("Available columns:", list(data.columns))
     st.stop()
 
-# if data.empty or 'Date' not in data.columns or 'Close' not in data.columns:
-#     st.error("The data is missing required columns. Please check the stock symbol and try again.")
-#     st.stop()
-
-# Ensure correct data types
+# Convert and clean
 data['Date'] = pd.to_datetime(data['Date'], errors='coerce')
-# data['Close'] = pd.to_numeric(data['Close'], errors='coerce')
-if 'Close' not in data.columns:
-    st.error("'Close' column is missing from the downloaded data. Cannot proceed.")
-    st.stop()
-
 data['Close'] = pd.to_numeric(data['Close'], errors='coerce')
-
 data = data.dropna(subset=['Date', 'Close'])
+
+if data.empty:
+    st.error("No usable data after cleaning. Please try another stock.")
+    st.stop()
 
 st.success("Data loaded successfully!")
 st.write("Downloaded data preview:")
@@ -90,7 +85,6 @@ st.write(data.head())
 # Plot Raw Data
 st.subheader("Raw data")
 def plot_raw_data():
-    """Plot the raw stock data."""
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="Stock Open", line=dict(color='red')))
     fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="Stock Close", line=dict(color='blue')))
@@ -104,16 +98,15 @@ def plot_raw_data():
 
 plot_raw_data()
 
-# Prepare Data for Prophet
+# Prepare data for Prophet
 df_train = data[['Date', 'Close']].copy()
 df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
 
-# Validate Training Data
 if df_train.empty:
     st.error("No valid data available for training. Cannot train the model.")
     st.stop()
 
-# Train Prophet Model
+# Train model
 st.write("Training the Prophet model...")
 try:
     m = Prophet()
@@ -123,18 +116,16 @@ except Exception as e:
     st.error(f"Error during model training: {e}")
     st.stop()
 
-# Create Future Dataframe and Predict
+# Make prediction
 future = m.make_future_dataframe(periods=period)
 forecast = m.predict(future)
 
-# Display Forecast Data
+# Display results
 st.subheader("Forecast data")
 st.write(forecast.tail())
 
-# Plot the Forecast
 st.write(f'Forecast plot for {n_years} years:')
 def plot_future_data():
-    """Plot the forecast data."""
     fig = plot_plotly(m, forecast)
     fig.update_layout(
         title_text=f'{selected_stock_name} Stock Price Forecast',
@@ -146,7 +137,7 @@ def plot_future_data():
 
 plot_future_data()
 
-# Forecast Components
+# Forecast components
 st.write("Forecast components")
 fig2 = m.plot_components(forecast)
 st.write(fig2)
