@@ -42,16 +42,20 @@ period = n_years * 365
 # Load Data Function
 @st.cache_data
 def load_data(ticker):
-    """Download and flatten yfinance data if needed."""
+    """Download and ensure correct format of Yahoo Finance data."""
     try:
-        data = yf.download(ticker, START, TODAY, group_by='ticker')
+        df = yf.download(ticker, START, TODAY, progress=False)
 
-        # Check if data is MultiIndex and flatten it
-        if isinstance(data.columns, pd.MultiIndex):
-            data.columns = data.columns.get_level_values(0)
+        if df.empty:
+            return pd.DataFrame()
 
-        data.reset_index(inplace=True)
-        return data
+        df.reset_index(inplace=True)
+
+        # Rename 'Adj Close' to 'Close' if 'Close' is missing
+        if 'Close' not in df.columns and 'Adj Close' in df.columns:
+            df['Close'] = df['Adj Close']
+
+        return df
     except Exception as e:
         st.error(f"Data loading error: {e}")
         return pd.DataFrame()
@@ -90,7 +94,8 @@ st.write(data.head())
 st.subheader("Raw data")
 def plot_raw_data():
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="Stock Open", line=dict(color='red')))
+    if 'Open' in data.columns:
+        fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="Stock Open", line=dict(color='red')))
     fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="Stock Close", line=dict(color='blue')))
     fig.update_layout(
         title_text=f'Time Series Data for {selected_stock_name}',
