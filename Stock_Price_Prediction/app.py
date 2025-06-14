@@ -42,14 +42,18 @@ period = n_years * 365
 # Load Data Function
 @st.cache_data
 def load_data(ticker):
-    """Download stock data and validate its structure."""
+    """Download and flatten yfinance data if needed."""
     try:
-        data = yf.download(ticker, START, TODAY)
-        if data.empty:
-            return pd.DataFrame()
+        data = yf.download(ticker, START, TODAY, group_by='ticker')
+
+        # Check if data is MultiIndex and flatten it
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
+
         data.reset_index(inplace=True)
         return data
     except Exception as e:
+        st.error(f"Data loading error: {e}")
         return pd.DataFrame()
 
 # Load and Validate Data
